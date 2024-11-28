@@ -1,12 +1,17 @@
 import NextAuth from 'next-auth';
+import { type NextAuthOptions } from 'next-auth';
 import SpotifyProvider from 'next-auth/providers/spotify';
 
 import { env } from '@/utils/env';
 
-const scope =
-	'user-read-currently-playing streaming playlist-read-private playlist-read-collaborative';
+const scope = [
+	'user-read-currently-playing',
+	'streaming',
+	'playlist-read-private',
+	'playlist-read-collaborative',
+].join(' ');
 
-export default NextAuth({
+const authOptions: NextAuthOptions = {
 	providers: [
 		SpotifyProvider({
 			clientId: env.SPOTIFY_CLIENT_ID,
@@ -20,12 +25,18 @@ export default NextAuth({
 	callbacks: {
 		async jwt({ token, account }) {
 			if (account) {
-				token.accessToken = account.access_token;
-				token.refreshToken = account.refresh_token;
-				token.expires = account.expires_in;
+				token.access_token = account.access_token;
 			}
 			return token;
 		},
+		async session({ session, token }) {
+			return {
+				...session,
+				token,
+			};
+		},
 	},
-	// ...additional configuration...
-});
+};
+
+const handler = NextAuth(authOptions);
+export { handler as GET, handler as POST };
